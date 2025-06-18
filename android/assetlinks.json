@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "firsthealth",
+      "package_name": "com.firsthealth.app",
+      "sha256_cert_fingerprints": [
+        "FINGERPRINT_SHA256"
+      ]
+    }
+  }
+]

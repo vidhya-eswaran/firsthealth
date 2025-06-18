@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      width: 100%;
+      font-family: 'Google Sans', sans-serif;
+      background-color: #0d47a1; /* Deep blue background */
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .glass-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      padding: 24px 48px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 8px 24px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .widget-text {
+      font-weight: 700;
+      font-size: 28px;
+      letter-spacing: 0.02em;
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      z-index: 10;
+    }
+
+    .subtle-glow {
+      position: absolute;
+      border-radius: 50%;
+      width: 100px; /* Adjust size of the glow */
+      height: 100px; /* Adjust size of the glow */
+      background-color: rgba(255, 255, 255, 0.1); /* Very faint white */
+      opacity: 0.9; /* 90% transparent */
+      z-index: -1; /* Place glow behind the text and glass */
+      filter: blur(0px); /* Apply a blur for the glow effect */
+    }
+  </style>
+</head>
+<body onclick="openLink()">
+  <div class="glass-container">
+    <div class="widget-text">Live Ambulance Dashboard</div>
+  </div>
+
+  <div class="subtle-glow" style="top: 30%; left: 20%;"></div>
+  <div class="subtle-glow" style="bottom: 20%; right: 30%;"></div>
+  <div class="subtle-glow" style="center;"></div> <script>
+    function openLink() {
+      window.open("https://crm.zoho.com/crm/org871427332/tab/WebTab1", "_blank", "noopener,noreferrer");
+    }
+
+    // Function to create a glow at a random position (optional, for more dynamic feel)
+    /*
+    function createGlow() {
+      const glow = document.createElement('div');
+      glow.classList.add('subtle-glow');
+      glow.style.opacity = '0.9';
+
+      const size = Math.max(window.innerWidth, window.innerHeight);
+      const glowSize = 80 + Math.random() * 40; // Vary glow size slightly
+      glow.style.width = `${glowSize}px`;
+      glow.style.height = `${glowSize}px`;
+
+      const x = Math.random() * window.innerWidth;
+      const y = Math.random() * window.innerHeight;
+      glow.style.left = `${x - glowSize / 2}px`;
+      glow.style.top = `${y - glowSize / 2}px`;
+
+      document.body.appendChild(glow);
+      setTimeout(() => glow.remove(), 1500); // Remove after a short duration
+    }
+
+    // Create glows at intervals (optional)
+    setInterval(createGlow, 1000);
+    */
+  </script>
+</body>
+</html>
