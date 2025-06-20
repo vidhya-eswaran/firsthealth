@@ -333,7 +333,7 @@ class CRMController extends Controller
         
         $clientId = "1000.QNLCYYNYN2D209PRU9CAY42GVUKX4C";
         $clientSecret = "f20465b33c536ec11cce176fe927a633c7edc07206";
-        $redirectUri = "https://blaccdot.com/FH/public/api/zoho/callback";
+        $redirectUri = "http://stg-api.firsthealthassist.com/api/zoho/callback";
         $refreshToken = "1000.c8898dbccc5733a785f6d3418eed260d.16b8b0f5e56f09292344b05d74ef4519";
         
         //dd($clientId);
