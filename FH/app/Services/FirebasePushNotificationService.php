@@ -19,8 +19,8 @@ class FirebasePushNotificationService
     public function sendNotification($deviceToken, $title, $body, $options = [])
     {
         try {
-            $appLogo = "https://blaccdot.com/FH/public/images/image.png";
-            $notificationLogo = "https://blaccdot.com/FH/public/images/notification.png";
+            $appLogo = "http://stg-api.firsthealthassist.com/images/image.png";
+            $notificationLogo = "http://stg-api.firsthealthassist.com/images/notification.png";
             $sound = $options['sound'] ?? 'default';
             //'image' => $appLogo,
             $message = CloudMessage::withTarget('token', $deviceToken)

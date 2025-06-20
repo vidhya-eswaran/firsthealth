@@ -84,7 +84,7 @@
 
             <!-- Reset Button -->
             <div class="reset-button">
-                <a href="https://blaccdot.com/android/assetlinks.php?resetUrl={{ $resetUrl }}">
+                <a href="http://stg-api.firsthealthassist.com/android/assetlinks.php?resetUrl={{ $resetUrl }}">
                    Open App to Reset Password
                 </a>
             </div>

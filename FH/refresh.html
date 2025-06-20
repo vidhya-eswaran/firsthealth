@@ -146,7 +146,7 @@
 
   async function fetchStatusMap() {
     try {
-      const res = await fetch("https://blaccdot.com/FH/public/api/activity-masters");
+      const res = await fetch("http://stg-api.firsthealthassist.com/api/activity-masters");
       const data = await res.json();
       statusMap = {};
       data.forEach(item => {
@@ -169,7 +169,7 @@
         await fetchStatusMap();
       }
 
-      const res = await fetch("https://blaccdot.com/FH/public/api/get-ambulance");
+      const res = await fetch("http://stg-api.firsthealthassist.com/api/get-ambulance");
       const response = await res.json();
       const data = response.data || [];
 
