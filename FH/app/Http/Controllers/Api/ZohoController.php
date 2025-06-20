@@ -29,7 +29,7 @@ class ZohoController extends Controller
         
         $client_id = "1000.QNLCYYNYN2D209PRU9CAY42GVUKX4C";
         $client_secret = "f20465b33c536ec11cce176fe927a633c7edc07206";
-        $redirect_uri = "https://blaccdot.com/FH/public/api/zoho/callback";
+        $redirect_uri = "http://stg-api.firsthealthassist.com/api/zoho/callback";
     
         $response = Http::post('https://accounts.zoho.com/oauth/v2/token', [
             'grant_type' => 'authorization_code',
