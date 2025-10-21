@@ -58,6 +58,138 @@ class RoasterMappingController extends Controller
         }
     }
     
+    // public function getHospitalsByDistance(Request $request)
+    // {
+    //     $request->validate([
+    //         'user_id' => 'required|integer',
+    //         'lat' => 'required|numeric',
+    //         'long' => 'required|numeric',
+    //         'location' => 'required'
+    //     ]);
+    
+    //     $userLat = $request->lat;
+    //     $userLong = $request->long;
+    
+    //     $hospitals = DB::table('hospitals')
+    //         ->select(
+    //             'id',
+    //             'name',
+    //             'latitude',
+    //             'longitude',
+    //             DB::raw("ROUND(6371 * ACOS(
+    //                 COS(RADIANS($userLat)) * COS(RADIANS(latitude)) *
+    //                 COS(RADIANS(longitude) - RADIANS($userLong)) +
+    //                 SIN(RADIANS($userLat)) * SIN(RADIANS(latitude))
+    //             ), 2) AS distance")
+    //         )
+    //         ->orderBy('distance', 'DESC')
+    //         ->get();
+        
+    //     //dd($hospitals);
+        
+    //     $driverIds = RoasterMapping::where('driver_status', 'Online')
+    //         ->where(function ($query) {
+    //             $query->where('ride_status', 'Complete')
+    //                   ->orWhereNull('ride_status');
+    //         })
+    //         ->pluck('driver_id')
+    //         ->toArray(); // ✅ flatten
+            
+    //        // dd($driverIds);
+        
+    //        $drivers = Driver::whereIn('id', $driverIds)
+    //         ->whereNotNull('current_lat')
+    //         ->whereNotNull('current_long')
+    //         ->get()
+    //         ->map(function ($driver) use ($userLat, $userLong) {
+    //             $theta = $userLong - $driver->current_long;
+    //             $dist = sin(deg2rad($userLat)) * sin(deg2rad($driver->current_lat)) +
+    //                     cos(deg2rad($userLat)) * cos(deg2rad($driver->current_lat)) * cos(deg2rad($theta));
+    //             $dist = acos($dist);
+    //             $dist = rad2deg($dist);
+    //             $miles = $dist * 60 * 1.1515;
+    //             $driver->distance = round($miles * 1.609344, 2); // in km
+    //             return $driver;
+    //         })->sortBy('distance')->values();
+
+    //     //  dd($drivers);
+
+        
+    //      $zohoData = [
+    //         'data' => $hospitals->map(function ($hospital) use ($request) {
+    //             return [
+    //                 'Name'             => Str::limit($hospital->name . ' | ' . ($hospital->distance ?? '0') . ' km', 100),
+    //                 'Hospital_Name'    => Str::limit($hospital->name . ' | ' . ($hospital->distance ?? '0') . ' km', 100),
+    //                 'Hospital_Id'      => $hospital->id,
+    //                 'User_Id'          => $request->user_id,
+    //                 'Location_From'    => Str::limit($request->location, 100),
+    //                 'Status'           => "Active"
+    //             ];
+    //         })->toArray()
+    //     ];
+        
+    //     $crmController = new CRMController();
+    //     $accessToken = $crmController->getZohoAccessToken();
+    
+    //     $module = 'Hospital_Distance';
+    //     $chunks = collect($zohoData['data'])->chunk(100);
+
+    //     foreach ($chunks as $index => $chunk) {
+    //         $response = Http::withHeaders([
+    //             'Authorization' => "Zoho-oauthtoken $accessToken",
+    //             'Content-Type' => 'application/json',
+    //         ])->post("https://www.zohoapis.com/crm/v2/$module", [
+    //             'data' => $chunk->values()->all()
+    //         ]);
+        
+    //         $result = $response->json();
+        
+    //         // logger("Batch $index", $result);
+    //         // if (isset($result['code']) && $result['code'] !== 'SUCCESS') {
+    //         // dd("Error in batch $index", $result);
+    //         // }
+    //     }
+        
+        
+    //     $zohoData1 = [
+    //         'data' => $drivers->map(function ($driver) use ($request) {
+    //             $currentLocation = $this->getLocationName($driver->current_lat, $driver->current_long);
+    
+    //             return [
+    //                 'Name'             => $driver->name . ' | ' . ($driver->distance ?? '0') . ' km', 
+    //                 'Driver_Name'      => $driver->name . ' | ' . ($driver->distance ?? '0') . ' km', 
+    //                 'Driver_Id'        => $driver->id,
+    //                 'User_Id'          => $request->user_id, // Corrected user_id from Driver table
+    //                 'Current_Location' => $currentLocation,
+    //                 'Driver_Status'    => 'Online',
+    //                 'Location_From'    => $request->location,
+    //                 'Status'           => "Active"
+    //             ];
+    //         })->toArray()
+    //     ];
+        
+    //    // dd($zohoData1);
+    
+    //     // Step 4: Send Data to Zoho CRM
+    //     $crmController1 = new CRMController();
+    //     $accessToken1 = $crmController1->getZohoAccessToken();
+    
+    //     $module = 'Driver_Distance';
+    //     $response1 = Http::withHeaders([
+    //         'Authorization' => "Zoho-oauthtoken $accessToken1",
+    //         'Content-Type' => 'application/json',
+    //     ])->post("https://www.zohoapis.com/crm/v2/$module", $zohoData1);
+        
+    //    // dd($response1->json());
+    
+    //     return response()->json([
+    //         'status' => true,
+    //         'hospitals' => $hospitals,
+    //         'drivers' => $drivers
+    //     ]);
+    // }
+
+
     public function getHospitalsByDistance(Request $request)
     {
         $request->validate([
@@ -66,55 +198,74 @@ class RoasterMappingController extends Controller
             'long' => 'required|numeric',
             'location' => 'required'
         ]);
-    
+
         $userLat = $request->lat;
         $userLong = $request->long;
-    
+        $apiKey = env('GOOGLE_MAPS_API_KEY');
+
+        // Fetch all hospitals
         $hospitals = DB::table('hospitals')
-            ->select(
-                'id',
-                'name',
-                'latitude',
-                'longitude',
-                DB::raw("ROUND(6371 * ACOS(
-                    COS(RADIANS($userLat)) * COS(RADIANS(latitude)) *
-                    COS(RADIANS(longitude) - RADIANS($userLong)) +
-                    SIN(RADIANS($userLat)) * SIN(RADIANS(latitude))
-                ), 2) AS distance")
-            )
-            ->orderBy('distance', 'DESC')
+            ->select('id', 'name', 'latitude', 'longitude')
             ->get();
-        
-        //dd($hospitals);
-        
+
+        // Prepare destinations (hospitals)
+        $destinations = $hospitals->map(fn($h) => "{$h->latitude},{$h->longitude}")->implode('|');
+
+        // Call Google Distance Matrix API for hospitals
+        $response = Http::get("https://maps.googleapis.com/maps/api/distancematrix/json", [
+            'origins' => "{$userLat},{$userLong}",
+            'destinations' => $destinations,
+            'mode' => 'driving',
+            'key' => $apiKey,
+        ]);
+
+        $matrix = $response->json();
+
+        // Attach distance and duration
+        foreach ($hospitals as $index => $hospital) {
+            if (isset($matrix['rows'][0]['elements'][$index]['distance'])) {
+                $hospital->distance = $matrix['rows'][0]['elements'][$index]['distance']['text'];
+                $hospital->duration = $matrix['rows'][0]['elements'][$index]['duration']['text'];
+            } else {
+                $hospital->distance = 'N/A';
+                $hospital->duration = 'N/A';
+            }
+        }
+
+        // ✅ Driver section
         $driverIds = RoasterMapping::where('driver_status', 'Online')
             ->where(function ($query) {
-                $query->where('ride_status', 'Complete')
-                      ->orWhereNull('ride_status');
+                $query->where('ride_status', 'Complete')->orWhereNull('ride_status');
             })
             ->pluck('driver_id')
-            ->toArray(); // ✅ flatten
-            
-           // dd($driverIds);
-        
-           $drivers = Driver::whereIn('id', $driverIds)
+            ->toArray();
+
+        $drivers = Driver::whereIn('id', $driverIds)
             ->whereNotNull('current_lat')
             ->whereNotNull('current_long')
-            ->get()
-            ->map(function ($driver) use ($userLat, $userLong) {
-                $theta = $userLong - $driver->current_long;
-                $dist = sin(deg2rad($userLat)) * sin(deg2rad($driver->current_lat)) +
-                        cos(deg2rad($userLat)) * cos(deg2rad($driver->current_lat)) * cos(deg2rad($theta));
-                $dist = acos($dist);
-                $dist = rad2deg($dist);
-                $miles = $dist * 60 * 1.1515;
-                $driver->distance = round($miles * 1.609344, 2); // in km
-                return $driver;
-            })->sortBy('distance')->values();
+            ->get();
 
-        //  dd($drivers);
+        $driverDestinations = $drivers->map(fn($d) => "{$d->current_lat},{$d->current_long}")->implode('|');
 
-        
+        $driverResponse = Http::get("https://maps.googleapis.com/maps/api/distancematrix/json", [
+            'origins' => "{$userLat},{$userLong}",
+            'destinations' => $driverDestinations,
+            'mode' => 'driving',
+            'key' => $apiKey,
+        ]);
+
+        $driverMatrix = $driverResponse->json();
+
+        foreach ($drivers as $index => $driver) {
+            if (isset($driverMatrix['rows'][0]['elements'][$index]['distance'])) {
+                $driver->distance = $driverMatrix['rows'][0]['elements'][$index]['distance']['text'];
+                $driver->duration = $driverMatrix['rows'][0]['elements'][$index]['duration']['text'];
+            } else {
+                $driver->distance = 'N/A';
+                $driver->duration = 'N/A';
+            }
+        }
+
          $zohoData = [
             'data' => $hospitals->map(function ($hospital) use ($request) {
                 return [
@@ -144,10 +295,6 @@ class RoasterMappingController extends Controller
         
             $result = $response->json();
         
-            // logger("Batch $index", $result);
-            // if (isset($result['code']) && $result['code'] !== 'SUCCESS') {
-            // dd("Error in batch $index", $result);
-            // }
         }
         
         
@@ -179,13 +326,12 @@ class RoasterMappingController extends Controller
             'Authorization' => "Zoho-oauthtoken $accessToken1",
             'Content-Type' => 'application/json',
         ])->post("https://www.zohoapis.com/crm/v2/$module", $zohoData1);
-        
-       // dd($response1->json());
-    
+
+
         return response()->json([
             'status' => true,
             'hospitals' => $hospitals,
-            'drivers' => $drivers
+            'drivers' => $drivers,
         ]);
     }
     

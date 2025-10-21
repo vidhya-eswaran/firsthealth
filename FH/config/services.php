@@ -33,5 +33,9 @@ return [
     'firebase' => [
         'credentials' => storage_path('firebase_credentials.json'),
     ],
+    'google' => [
+        'maps_key' => env('GOOGLE_MAPS_API_KEY'),
+    ],
+
 
 ];
