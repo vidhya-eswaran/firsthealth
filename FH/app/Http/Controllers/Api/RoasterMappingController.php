@@ -229,7 +229,7 @@ class RoasterMappingController extends Controller
             ]);
 
             $matrix = $response->json();
-            logger("Chunk $chunkIndex Response", $matrix);
+            logger("ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt $chunkIndex Response", $matrix);
 
             if (isset($matrix['rows'][0]['elements']) && is_array($matrix['rows'][0]['elements'])) {
                 foreach ($chunk as $index => $hospital) {
