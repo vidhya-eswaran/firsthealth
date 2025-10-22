@@ -211,6 +211,8 @@ class RoasterMappingController extends Controller
        $allHospitals = collect($hospitals);
         $chunks = $allHospitals->chunk(25); // Google allows up to 100 destinations per request
 
+        $apiKey = env('GOOGLE_MAPS_API_KEY');
+
         foreach ($chunks as $chunkIndex => $chunk) {
             $destinations = $chunk->map(fn($h) => "{$h->latitude},{$h->longitude}")->implode('|');
 
@@ -243,7 +245,11 @@ class RoasterMappingController extends Controller
                     $hospital->duration = 'N/A';
                 }
             }
+
+            usleep(300000);
         }
+
+        $hospitals = $chunkedHospitals->flatten(1)->values();
 
 
         // ✅ Driver section
