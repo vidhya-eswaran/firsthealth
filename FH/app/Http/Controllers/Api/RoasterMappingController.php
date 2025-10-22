@@ -208,12 +208,12 @@ class RoasterMappingController extends Controller
             ->select('id', 'name', 'latitude', 'longitude')
             ->get();
 
-       $allHospitals = collect($hospitals);
-        $chunks = $allHospitals->chunk(25); // Google allows up to 100 destinations per request
+        $allHospitals = collect($hospitals);
+        $chunkedHospitals = $allHospitals->chunk(25); // Google API limit = 25 destinations
+        $apiKey = env('GOOGLE_MAPS_API_KEY'); // use your key from .env
 
-        $apiKey = env('GOOGLE_MAPS_API_KEY');
+        foreach ($chunkedHospitals as $chunkIndex => $chunk) {
 
-        foreach ($chunks as $chunkIndex => $chunk) {
             $destinations = $chunk->map(fn($h) => "{$h->latitude},{$h->longitude}")->implode('|');
 
             $response = Http::get('https://maps.googleapis.com/maps/api/distancematrix/json', [
@@ -225,9 +225,12 @@ class RoasterMappingController extends Controller
 
             $matrix = $response->json();
 
-           // dd($matrix);
-
-            if (($matrix['status'] ?? '') === 'OK') {
+            // ✅ Safety checks for a valid response
+            if (
+                ($matrix['status'] ?? '') === 'OK' &&
+                isset($matrix['rows'][0]['elements']) &&
+                count($matrix['rows'][0]['elements']) > 0
+            ) {
                 foreach ($chunk as $index => $hospital) {
                     $element = $matrix['rows'][0]['elements'][$index] ?? null;
 
@@ -240,16 +243,20 @@ class RoasterMappingController extends Controller
                     }
                 }
             } else {
+                // If API failed for this batch, mark them N/A
                 foreach ($chunk as $hospital) {
                     $hospital->distance = 'N/A';
                     $hospital->duration = 'N/A';
                 }
             }
 
-            usleep(300000);
+            // ✅ Add a tiny delay between chunks to avoid rate limits
+            usleep(300000); // 0.3 seconds pause
         }
 
+        // Merge all hospitals back (each chunk updated)
         $hospitals = $chunkedHospitals->flatten(1)->values();
+
 
 
         // ✅ Driver section
