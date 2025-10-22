@@ -219,9 +219,11 @@ class RoasterMappingController extends Controller
             'key' => $apiKey,
         ]);
 
-        dd($response);
+        
 
         $matrix = $response->json();
+
+        dd($matrix);
 
         // Attach distance and duration
         foreach ($hospitals as $index => $hospital) {
