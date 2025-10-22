@@ -223,7 +223,7 @@ class RoasterMappingController extends Controller
 
             $matrix = $response->json();
 
-            dd($matrix);
+           // dd($matrix);
 
             if (($matrix['status'] ?? '') === 'OK') {
                 foreach ($chunk as $index => $hospital) {
