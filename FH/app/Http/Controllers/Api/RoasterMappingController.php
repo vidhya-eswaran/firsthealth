@@ -204,17 +204,21 @@ class RoasterMappingController extends Controller
         $apiKey = env('GOOGLE_MAPS_API_KEY');
 
         // Fetch all hospitals
-        $hospitals = DB::table('hospitals')
+       $hospitals = DB::table('hospitals')
             ->select('id', 'name', 'latitude', 'longitude')
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
             ->get();
+
+        logger('Hospitals count:', ['count' => $hospitals->count()]);
 
         $apiKey = env('GOOGLE_MAPS_API_KEY');
         $allUpdated = collect();
 
-        $chunkedHospitals = $hospitals->chunk(25); // 25 per API call
+        $chunkedHospitals = $hospitals->chunk(25);
+        logger('Total chunks:', ['count' => $chunkedHospitals->count()]);
 
         foreach ($chunkedHospitals as $chunkIndex => $chunk) {
-
             $destinations = $chunk->map(fn($h) => "{$h->latitude},{$h->longitude}")->implode('|');
 
             $response = Http::get('https://maps.googleapis.com/maps/api/distancematrix/json', [
@@ -225,15 +229,11 @@ class RoasterMappingController extends Controller
             ]);
 
             $matrix = $response->json();
+            logger("Chunk $chunkIndex Response", $matrix);
 
-            // ✅ Validate API response
-            if (
-                isset($matrix['rows'][0]['elements']) &&
-                is_array($matrix['rows'][0]['elements'])
-            ) {
+            if (isset($matrix['rows'][0]['elements']) && is_array($matrix['rows'][0]['elements'])) {
                 foreach ($chunk as $index => $hospital) {
                     $element = $matrix['rows'][0]['elements'][$index] ?? null;
-
                     if ($element && ($element['status'] ?? '') === 'OK') {
                         $hospital->distance = $element['distance']['text'];
                         $hospital->duration = $element['duration']['text'];
@@ -249,15 +249,13 @@ class RoasterMappingController extends Controller
                 }
             }
 
-            // ✅ Collect updated chunk back into main list
             $allUpdated = $allUpdated->merge($chunk);
-
-            // ✅ Optional: short delay between requests
-            usleep(300000); // 0.3 sec
+            sleep(1); // wait 1 second to avoid rate limit
         }
 
-        // ✅ Now replace the original list
         $hospitals = $allUpdated->values();
+
+
 
 
 
