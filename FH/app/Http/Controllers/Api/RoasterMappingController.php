@@ -219,6 +219,8 @@ class RoasterMappingController extends Controller
             'key' => $apiKey,
         ]);
 
+        dd($matrix);
+
         $matrix = $response->json();
 
         // Attach distance and duration
