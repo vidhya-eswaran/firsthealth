@@ -208,9 +208,10 @@ class RoasterMappingController extends Controller
             ->select('id', 'name', 'latitude', 'longitude')
             ->get();
 
-        $allHospitals = collect($hospitals);
-        $chunkedHospitals = $allHospitals->chunk(25); // Google API limit = 25 destinations
-        $apiKey = env('GOOGLE_MAPS_API_KEY'); // use your key from .env
+        $apiKey = env('GOOGLE_MAPS_API_KEY');
+        $allUpdated = collect();
+
+        $chunkedHospitals = $hospitals->chunk(25); // 25 per API call
 
         foreach ($chunkedHospitals as $chunkIndex => $chunk) {
 
@@ -225,11 +226,10 @@ class RoasterMappingController extends Controller
 
             $matrix = $response->json();
 
-            // ✅ Safety checks for a valid response
+            // ✅ Validate API response
             if (
-                ($matrix['status'] ?? '') === 'OK' &&
                 isset($matrix['rows'][0]['elements']) &&
-                count($matrix['rows'][0]['elements']) > 0
+                is_array($matrix['rows'][0]['elements'])
             ) {
                 foreach ($chunk as $index => $hospital) {
                     $element = $matrix['rows'][0]['elements'][$index] ?? null;
@@ -243,19 +243,22 @@ class RoasterMappingController extends Controller
                     }
                 }
             } else {
-                // If API failed for this batch, mark them N/A
                 foreach ($chunk as $hospital) {
                     $hospital->distance = 'N/A';
                     $hospital->duration = 'N/A';
                 }
             }
 
-            // ✅ Add a tiny delay between chunks to avoid rate limits
-            usleep(300000); // 0.3 seconds pause
+            // ✅ Collect updated chunk back into main list
+            $allUpdated = $allUpdated->merge($chunk);
+
+            // ✅ Optional: short delay between requests
+            usleep(300000); // 0.3 sec
         }
 
-        // Merge all hospitals back (each chunk updated)
-        $hospitals = $chunkedHospitals->flatten(1)->values();
+        // ✅ Now replace the original list
+        $hospitals = $allUpdated->values();
+
 
 
 
