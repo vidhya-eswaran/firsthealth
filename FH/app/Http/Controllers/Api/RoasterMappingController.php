@@ -243,6 +243,7 @@ class RoasterMappingController extends Controller
                     }
                 }
             } else {
+                logger("chunnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnddwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww $chunkIndex returned empty results");
                 foreach ($chunk as $hospital) {
                     $hospital->distance = 'N/A';
                     $hospital->duration = 'N/A';
