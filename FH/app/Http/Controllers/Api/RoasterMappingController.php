@@ -209,7 +209,7 @@ class RoasterMappingController extends Controller
             ->get();
 
        $allHospitals = collect($hospitals);
-        $chunks = $allHospitals->chunk(100); // Google allows up to 100 destinations per request
+        $chunks = $allHospitals->chunk(25); // Google allows up to 100 destinations per request
 
         foreach ($chunks as $chunkIndex => $chunk) {
             $destinations = $chunk->map(fn($h) => "{$h->latitude},{$h->longitude}")->implode('|');
