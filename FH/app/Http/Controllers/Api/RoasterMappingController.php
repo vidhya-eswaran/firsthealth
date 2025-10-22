@@ -208,33 +208,41 @@ class RoasterMappingController extends Controller
             ->select('id', 'name', 'latitude', 'longitude')
             ->get();
 
-        // Prepare destinations (hospitals)
-        $destinations = $hospitals->map(fn($h) => "{$h->latitude},{$h->longitude}")->implode('|');
+       $allHospitals = collect($hospitals);
+        $chunks = $allHospitals->chunk(100); // Google allows up to 100 destinations per request
 
-        // Call Google Distance Matrix API for hospitals
-        $response = Http::get("https://maps.googleapis.com/maps/api/distancematrix/json", [
-            'origins' => "{$userLat},{$userLong}",
-            'destinations' => $destinations,
-            'mode' => 'driving',
-            'key' => $apiKey,
-        ]);
+        foreach ($chunks as $chunkIndex => $chunk) {
+            $destinations = $chunk->map(fn($h) => "{$h->latitude},{$h->longitude}")->implode('|');
 
-        
+            $response = Http::get('https://maps.googleapis.com/maps/api/distancematrix/json', [
+                'origins' => "{$userLat},{$userLong}",
+                'destinations' => $destinations,
+                'mode' => 'driving',
+                'key' => $apiKey,
+            ]);
 
-        $matrix = $response->json();
+            $matrix = $response->json();
 
-        dd($apiKey, "key",$matrix);
+            if (($matrix['status'] ?? '') === 'OK') {
+                foreach ($chunk as $index => $hospital) {
+                    $element = $matrix['rows'][0]['elements'][$index] ?? null;
 
-        // Attach distance and duration
-        foreach ($hospitals as $index => $hospital) {
-            if (isset($matrix['rows'][0]['elements'][$index]['distance'])) {
-                $hospital->distance = $matrix['rows'][0]['elements'][$index]['distance']['text'];
-                $hospital->duration = $matrix['rows'][0]['elements'][$index]['duration']['text'];
+                    if ($element && ($element['status'] ?? '') === 'OK') {
+                        $hospital->distance = $element['distance']['text'];
+                        $hospital->duration = $element['duration']['text'];
+                    } else {
+                        $hospital->distance = 'N/A';
+                        $hospital->duration = 'N/A';
+                    }
+                }
             } else {
-                $hospital->distance = 'N/A';
-                $hospital->duration = 'N/A';
+                foreach ($chunk as $hospital) {
+                    $hospital->distance = 'N/A';
+                    $hospital->duration = 'N/A';
+                }
             }
         }
+
 
         // ✅ Driver section
         $driverIds = RoasterMapping::where('driver_status', 'Online')
