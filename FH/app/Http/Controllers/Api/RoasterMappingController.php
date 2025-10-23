@@ -233,7 +233,7 @@ class RoasterMappingController extends Controller
             ]);
 
             $matrix = $response->json();
-            logger("Chunk $chunkIndex Matrix Status", [
+            logger("lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll $chunkIndex Matrix Status", [
                 'status' => $matrix['status'] ?? 'none',
                 'elementsCount' => isset($matrix['rows'][0]['elements']) ? count($matrix['rows'][0]['elements']) : 0,
             ]);
@@ -378,8 +378,6 @@ class RoasterMappingController extends Controller
         ]);
         
         //dd($response->json());
-    
-        Log::info('Geocoding API Response:', $response->json());
         
         if ($response->successful()) {
             $data = $response->json();
