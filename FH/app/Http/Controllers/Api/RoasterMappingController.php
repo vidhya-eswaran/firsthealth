@@ -221,8 +221,6 @@ class RoasterMappingController extends Controller
         foreach ($chunkedHospitals as $chunkIndex => $chunk) {
             $destinations = $chunk->map(fn($h) => "{$h->latitude},{$h->longitude}")->implode('|');
 
-           // dd($destinations);
-
             $response = Http::timeout(20)->get('https://maps.googleapis.com/maps/api/distancematrix/json', [
                 'origins' => "{$userLat},{$userLong}",
                 'destinations' => $destinations,
@@ -231,12 +229,10 @@ class RoasterMappingController extends Controller
             ]);
 
             $matrix = $response->json();
-            
 
             if (isset($matrix['rows'][0]['elements']) && is_array($matrix['rows'][0]['elements'])) {
-
                 foreach ($chunk as $index => $hospital) {
-                    $element = $matrix['rows'][0]['elements'][0] ?? null;
+                    $element = $matrix['rows'][0]['elements'][$index] ?? null;
                     if ($element && ($element['status'] ?? '') === 'OK') {
                         $hospital->distance = $element['distance']['text'];
                         $hospital->duration = $element['duration']['text'];
@@ -246,17 +242,23 @@ class RoasterMappingController extends Controller
                     }
                 }
             } else {
-                foreach ($chunk as $index => $hospital) {
+                foreach ($chunk as $hospital) {
                     $hospital->distance = 'N/A';
                     $hospital->duration = 'N/A';
                 }
             }
 
-            $allUpdated = $allUpdated->merge($chunk);
-            sleep(1); // wait 1 second to avoid rate limit
+            // Merge the updated hospitals from this chunk into main collection
+            $allUpdated = $allUpdated->concat($chunk->values());
+            logger("Merged chunk {$chunkIndex}", ['count' => $allUpdated->count()]);
+
+            // Optional delay for rate limits
+            sleep(1);
         }
 
+        // Finally assign all updated hospitals back
         $hospitals = $allUpdated->values();
+
 
      dd($hospitals);
 
