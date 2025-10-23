@@ -221,7 +221,7 @@ class RoasterMappingController extends Controller
         foreach ($chunkedHospitals as $chunkIndex => $chunk) {
             $destinations = $chunk->map(fn($h) => "{$h->latitude},{$h->longitude}")->implode('|');
 
-            dd($destinations);
+           // dd($destinations);
 
             $response = Http::timeout(20)->get('https://maps.googleapis.com/maps/api/distancematrix/json', [
                 'origins' => "{$userLat},{$userLong}",
@@ -258,7 +258,7 @@ class RoasterMappingController extends Controller
 
         $hospitals = $allUpdated->values();
 
-     // dd($hospitals);
+     dd($hospitals);
 
 
         // ✅ Driver section
