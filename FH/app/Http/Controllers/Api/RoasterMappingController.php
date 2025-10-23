@@ -267,52 +267,31 @@ class RoasterMappingController extends Controller
             ->pluck('driver_id')
             ->toArray();
 
-        $allUpdatedDrivers = collect();
-
         $drivers = Driver::whereIn('id', $driverIds)
             ->whereNotNull('current_lat')
             ->whereNotNull('current_long')
             ->get();
 
-        $chunkedDrivers = $drivers->chunk(20); // <= chunk to avoid API limit
-        logger('Total driver chunks:', ['count' => $chunkedDrivers->count()]);
+        $driverDestinations = $drivers->map(fn($d) => "{$d->current_lat},{$d->current_long}")->implode('|');
 
-        foreach ($chunkedDrivers as $chunkIndex => $chunk) {
-            $destinations = $chunk->map(fn($d) => "{$d->current_lat},{$d->current_long}")->implode('|');
+        $driverResponse = Http::get("https://maps.googleapis.com/maps/api/distancematrix/json", [
+            'origins' => "{$userLat},{$userLong}",
+            'destinations' => $driverDestinations,
+            'mode' => 'driving',
+            'key' => $apiKey,
+        ]);
 
-            $response = Http::timeout(20)->get('https://maps.googleapis.com/maps/api/distancematrix/json', [
-                'origins' => "{$userLat},{$userLong}",
-                'destinations' => $destinations,
-                'mode' => 'driving',
-                'key' => $apiKey,
-            ]);
+        $driverMatrix = $driverResponse->json();
 
-            $matrix = $response->json();
-
-            if (isset($matrix['rows'][0]['elements']) && is_array($matrix['rows'][0]['elements'])) {
-                foreach ($chunk as $index => $driver) {
-                    $element = $matrix['rows'][0]['elements'][0] ?? null;
-                    if ($element && ($element['status'] ?? '') === 'OK') {
-                        $driver->distance = $element['distance']['text'];
-                        $driver->duration = $element['duration']['text'];
-                    } else {
-                        $driver->distance = 'N/A';
-                        $driver->duration = 'N/A';
-                    }
-                }
+        foreach ($drivers as $index => $driver) {
+            if (isset($driverMatrix['rows'][0]['elements'][$index]['distance'])) {
+                $driver->distance = $driverMatrix['rows'][0]['elements'][$index]['distance']['text'];
+                $driver->duration = $driverMatrix['rows'][0]['elements'][$index]['duration']['text'];
             } else {
-                foreach ($chunk as $driver) {
-                    $driver->distance = 'N/A';
-                    $driver->duration = 'N/A';
-                }
+                $driver->distance = 'N/A';
+                $driver->duration = 'N/A';
             }
-
-            $allUpdatedDrivers = $allUpdatedDrivers->merge($chunk);
-            sleep(1); // Wait 1 sec between chunks to avoid rate limiting
         }
-
-        $drivers = $allUpdatedDrivers->values();
-
 
          $zohoData = [
             'data' => $hospitals->map(function ($hospital) use ($request) {
