@@ -240,17 +240,17 @@ class RoasterMappingController extends Controller
                 foreach ($chunk as $index => $hospital) {
                     $element = $matrix['rows'][0]['elements'][$index] ?? null;
                     if ($element && ($element['status'] ?? '') === 'OK') {
-                        $hospital->distance = $element['distance']['text'];
-                        $hospital->duration = $element['duration']['text'];
+                        $hospital[$index]->distance = $element['distance']['text'];
+                        $hospital[$index]->duration = $element['duration']['text'];
                     } else {
-                        $hospital->distance = 'N/A';
-                        $hospital->duration = 'N/A';
+                        $hospital[$index]->distance = 'N/A';
+                        $hospital[$index]->duration = 'N/A';
                     }
                 }
             } else {
-                foreach ($chunk as $hospital) {
-                    $hospital->distance = 'N/A';
-                    $hospital->duration = 'N/A';
+                foreach ($chunk as $index => $hospital) {
+                    $hospital[$index]->distance = 'N/A';
+                    $hospital[$index]->duration = 'N/A';
                 }
             }
 
@@ -259,6 +259,8 @@ class RoasterMappingController extends Controller
         }
 
         $hospitals = $allUpdated->values();
+
+        dd($hospitals);
 
 
         // ✅ Driver section
