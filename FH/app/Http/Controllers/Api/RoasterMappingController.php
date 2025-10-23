@@ -215,13 +215,13 @@ class RoasterMappingController extends Controller
         $apiKey = env('GOOGLE_MAPS_API_KEY');
         $allUpdated = collect();
 
+        $hospitals = collect($hospitals)->filter(fn($h) => $h->latitude && $h->longitude);
         $chunkedHospitals = $hospitals->chunk(25);
-        logger('Total chunks:', ['count' => $chunkedHospitals->count()]);
 
         foreach ($chunkedHospitals as $chunkIndex => $chunk) {
             $destinations = $chunk->map(fn($h) => "{$h->latitude},{$h->longitude}")->implode('|');
 
-            $response = Http::get('https://maps.googleapis.com/maps/api/distancematrix/json', [
+            $response = Http::asForm()->post('https://maps.googleapis.com/maps/api/distancematrix/json', [
                 'origins' => "{$userLat},{$userLong}",
                 'destinations' => $destinations,
                 'mode' => 'driving',
@@ -229,35 +229,26 @@ class RoasterMappingController extends Controller
             ]);
 
             $matrix = $response->json();
-            logger("ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt $chunkIndex Response", $matrix);
+            logger("Chunk $chunkIndex Response", ['status' => $matrix['status'] ?? 'none']);
 
-            if (isset($matrix['rows'][0]['elements']) && is_array($matrix['rows'][0]['elements'])) {
+            if (($matrix['status'] ?? '') === 'OK' && isset($matrix['rows'][0]['elements'])) {
                 foreach ($chunk as $index => $hospital) {
                     $element = $matrix['rows'][0]['elements'][$index] ?? null;
                     if ($element && ($element['status'] ?? '') === 'OK') {
-                        $hospital->distance = $element['distance']['text'];
-                        $hospital->duration = $element['duration']['text'];
+                        $hospital->distance = $element['distance']['text'] ?? 'N/A';
+                        $hospital->duration = $element['duration']['text'] ?? 'N/A';
                     } else {
                         $hospital->distance = 'N/A';
                         $hospital->duration = 'N/A';
                     }
                 }
-            } else {
-                logger("chunnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnddwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww $chunkIndex returned empty results");
-                foreach ($chunk as $hospital) {
-                    $hospital->distance = 'N/A';
-                    $hospital->duration = 'N/A';
-                }
             }
 
             $allUpdated = $allUpdated->merge($chunk);
-            sleep(1); // wait 1 second to avoid rate limit
+            usleep(500000); // wait 0.5 sec between calls
         }
 
         $hospitals = $allUpdated->values();
-
-
-
 
 
 
