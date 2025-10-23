@@ -215,17 +215,13 @@ class RoasterMappingController extends Controller
         $apiKey = env('GOOGLE_MAPS_API_KEY');
         $allUpdated = collect();
 
-        // Filter invalid coordinates
-        $hospitals = collect($hospitals)->filter(fn($h) => $h->latitude && $h->longitude);
-
         $chunkedHospitals = $hospitals->chunk(25);
         logger('Total chunks:', ['count' => $chunkedHospitals->count()]);
 
         foreach ($chunkedHospitals as $chunkIndex => $chunk) {
             $destinations = $chunk->map(fn($h) => "{$h->latitude},{$h->longitude}")->implode('|');
 
-            // Use POST to avoid URL length limit
-            $response = Http::asForm()->post('https://maps.googleapis.com/maps/api/distancematrix/json', [
+            $response = Http::get('https://maps.googleapis.com/maps/api/distancematrix/json', [
                 'origins' => "{$userLat},{$userLong}",
                 'destinations' => $destinations,
                 'mode' => 'driving',
@@ -233,17 +229,14 @@ class RoasterMappingController extends Controller
             ]);
 
             $matrix = $response->json();
-            logger("lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll $chunkIndex Matrix Status", [
-                'status' => $matrix['status'] ?? 'none',
-                'elementsCount' => isset($matrix['rows'][0]['elements']) ? count($matrix['rows'][0]['elements']) : 0,
-            ]);
+            logger("Chunk $chunkIndex Response", $matrix);
 
-            if (($matrix['status'] ?? '') === 'OK' && isset($matrix['rows'][0]['elements'])) {
+            if (isset($matrix['rows'][0]['elements']) && is_array($matrix['rows'][0]['elements'])) {
                 foreach ($chunk as $index => $hospital) {
                     $element = $matrix['rows'][0]['elements'][$index] ?? null;
                     if ($element && ($element['status'] ?? '') === 'OK') {
-                        $hospital->distance = $element['distance']['text'] ?? 'N/A';
-                        $hospital->duration = $element['duration']['text'] ?? 'N/A';
+                        $hospital->distance = $element['distance']['text'];
+                        $hospital->duration = $element['duration']['text'];
                     } else {
                         $hospital->distance = 'N/A';
                         $hospital->duration = 'N/A';
@@ -257,10 +250,13 @@ class RoasterMappingController extends Controller
             }
 
             $allUpdated = $allUpdated->merge($chunk);
-            usleep(500000); // wait 0.5 sec to avoid rate limit
+            sleep(1); // wait 1 second to avoid rate limit
         }
 
         $hospitals = $allUpdated->values();
+
+
+
 
 
 
@@ -378,6 +374,8 @@ class RoasterMappingController extends Controller
         ]);
         
         //dd($response->json());
+    
+        Log::info('Geocoding API Response:', $response->json());
         
         if ($response->successful()) {
             $data = $response->json();
