@@ -212,52 +212,53 @@ class RoasterMappingController extends Controller
 
         logger('Hospitals count:', ['count' => $hospitals->count()]);
 
-        $apiKey = env('GOOGLE_MAPS_API_KEY');
-        $allUpdated = collect();
+       $apiKey = env('GOOGLE_MAPS_API_KEY');
+$allUpdated = collect();
 
-        $chunkedHospitals = $hospitals->chunk(20);
-        logger('Total chunks:', ['count' => $chunkedHospitals->count()]);
+$chunkedHospitals = $hospitals->chunk(20);
+logger('Total chunks:', ['count' => $chunkedHospitals->count()]);
 
-        foreach ($chunkedHospitals as $chunkIndex => $chunk) {
-            $destinations = $chunk->map(fn($h) => "{$h->latitude},{$h->longitude}")->implode('|');
+foreach ($chunkedHospitals as $chunkIndex => $chunk) {
+    // Reindex chunk to start from 0,1,2,...
+    $chunk = $chunk->values();
 
-            $response = Http::timeout(20)->get('https://maps.googleapis.com/maps/api/distancematrix/json', [
-                'origins' => "{$userLat},{$userLong}",
-                'destinations' => $destinations,
-                'mode' => 'driving',
-                'key' => $apiKey,
-            ]);
+    $destinations = $chunk->map(fn($h) => "{$h->latitude},{$h->longitude}")->implode('|');
 
-            $matrix = $response->json();
+    $response = Http::timeout(20)->get('https://maps.googleapis.com/maps/api/distancematrix/json', [
+        'origins' => "{$userLat},{$userLong}",
+        'destinations' => $destinations,
+        'mode' => 'driving',
+        'key' => $apiKey,
+    ]);
 
-            if (isset($matrix['rows'][0]['elements']) && is_array($matrix['rows'][0]['elements'])) {
-                foreach ($chunk as $index => $hospital) {
-                    $element = $matrix['rows'][0]['elements'][$index] ?? null;
-                    if ($element && ($element['status'] ?? '') === 'OK') {
-                        $hospital->distance = $element['distance']['text'];
-                        $hospital->duration = $element['duration']['text'];
-                    } else {
-                        $hospital->distance = 'N/A';
-                        $hospital->duration = 'N/A';
-                    }
-                }
+    $matrix = $response->json();
+
+    if (isset($matrix['rows'][0]['elements']) && is_array($matrix['rows'][0]['elements'])) {
+        foreach ($chunk as $index => $hospital) {
+            $element = $matrix['rows'][0]['elements'][$index] ?? null;
+
+            if ($element && ($element['status'] ?? '') === 'OK') {
+                $hospital->distance = $element['distance']['text'];
+                $hospital->duration = $element['duration']['text'];
             } else {
-                foreach ($chunk as $hospital) {
-                    $hospital->distance = 'N/A';
-                    $hospital->duration = 'N/A';
-                }
+                $hospital->distance = 'N/A';
+                $hospital->duration = 'N/A';
             }
-
-            // Merge the updated hospitals from this chunk into main collection
-            $allUpdated = $allUpdated->concat($chunk->values());
-            logger("Merged chunk {$chunkIndex}", ['count' => $allUpdated->count()]);
-
-            // Optional delay for rate limits
-            sleep(1);
         }
+    } else {
+        foreach ($chunk as $hospital) {
+            $hospital->distance = 'N/A';
+            $hospital->duration = 'N/A';
+        }
+    }
 
-        // Finally assign all updated hospitals back
-        $hospitals = $allUpdated->values();
+    $allUpdated = $allUpdated->concat($chunk);
+    logger("Merged chunk {$chunkIndex}", ['count' => $allUpdated->count()]);
+    sleep(1);
+}
+
+$hospitals = $allUpdated->values();
+
 
 
      dd($hospitals);
