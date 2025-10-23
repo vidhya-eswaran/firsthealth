@@ -240,17 +240,17 @@ class RoasterMappingController extends Controller
                 foreach ($chunk as $index => $hospital) {
                     $element = $matrix['rows'][0]['elements'][$index] ?? null;
                     if ($element && ($element['status'] ?? '') === 'OK') {
-                        $hospital[$index]->distance = $element['distance']['text'];
-                        $hospital[$index]->duration = $element['duration']['text'];
+                        $hospital->distance = $element['distance']['text'];
+                        $hospital->duration = $element['duration']['text'];
                     } else {
-                        $hospital[$index]->distance = 'N/A';
-                        $hospital[$index]->duration = 'N/A';
+                        $hospital->distance = 'N/A';
+                        $hospital->duration = 'N/A';
                     }
                 }
             } else {
                 foreach ($chunk as $index => $hospital) {
-                    $hospital[$index]->distance = 'N/A';
-                    $hospital[$index]->duration = 'N/A';
+                    $hospital->distance = 'N/A';
+                    $hospital->duration = 'N/A';
                 }
             }
 
