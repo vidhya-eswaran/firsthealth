@@ -243,8 +243,8 @@ class RoasterMappingController extends Controller
                         $hospital->distance = $element['distance']['text'];
                         $hospital->duration = $element['duration']['text'];
                     } else {
-                        $hospital->distance = 'N/A';
-                        $hospital->duration = 'N/A';
+                        $hospital->distance = 'N/AA';
+                        $hospital->duration = 'N/AA';
                     }
                 }
             } else {
