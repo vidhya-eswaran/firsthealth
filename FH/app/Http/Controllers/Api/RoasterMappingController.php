@@ -208,7 +208,7 @@ class RoasterMappingController extends Controller
             ->select('id', 'name', 'latitude', 'longitude')
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
-            ->limit(50)->get();
+            ->get();
 
         logger('Hospitals count:', ['count' => $hospitals->count()]);
 
@@ -243,8 +243,8 @@ class RoasterMappingController extends Controller
                         $hospital->distance = $element['distance']['text'];
                         $hospital->duration = $element['duration']['text'];
                     } else {
-                        $hospital->distance = 'N/AA';
-                        $hospital->duration = 'N/AA';
+                        $hospital->distance = 'N/A';
+                        $hospital->duration = 'N/A';
                     }
                 }
             } else {
