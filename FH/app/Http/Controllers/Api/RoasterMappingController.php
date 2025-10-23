@@ -215,12 +215,16 @@ class RoasterMappingController extends Controller
         $apiKey = env('GOOGLE_MAPS_API_KEY');
         $allUpdated = collect();
 
+        // Filter invalid coordinates
         $hospitals = collect($hospitals)->filter(fn($h) => $h->latitude && $h->longitude);
+
         $chunkedHospitals = $hospitals->chunk(25);
+        logger('Total chunks:', ['count' => $chunkedHospitals->count()]);
 
         foreach ($chunkedHospitals as $chunkIndex => $chunk) {
             $destinations = $chunk->map(fn($h) => "{$h->latitude},{$h->longitude}")->implode('|');
 
+            // Use POST to avoid URL length limit
             $response = Http::asForm()->post('https://maps.googleapis.com/maps/api/distancematrix/json', [
                 'origins' => "{$userLat},{$userLong}",
                 'destinations' => $destinations,
@@ -229,7 +233,10 @@ class RoasterMappingController extends Controller
             ]);
 
             $matrix = $response->json();
-            logger("Chunk $chunkIndex Response", ['status' => $matrix['status'] ?? 'none']);
+            logger("Chunk $chunkIndex Matrix Status", [
+                'status' => $matrix['status'] ?? 'none',
+                'elementsCount' => isset($matrix['rows'][0]['elements']) ? count($matrix['rows'][0]['elements']) : 0,
+            ]);
 
             if (($matrix['status'] ?? '') === 'OK' && isset($matrix['rows'][0]['elements'])) {
                 foreach ($chunk as $index => $hospital) {
@@ -242,10 +249,15 @@ class RoasterMappingController extends Controller
                         $hospital->duration = 'N/A';
                     }
                 }
+            } else {
+                foreach ($chunk as $hospital) {
+                    $hospital->distance = 'N/A';
+                    $hospital->duration = 'N/A';
+                }
             }
 
             $allUpdated = $allUpdated->merge($chunk);
-            usleep(500000); // wait 0.5 sec between calls
+            usleep(500000); // wait 0.5 sec to avoid rate limit
         }
 
         $hospitals = $allUpdated->values();
