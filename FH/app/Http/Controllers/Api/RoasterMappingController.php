@@ -238,16 +238,14 @@ class RoasterMappingController extends Controller
                 logger("uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu $chunkIndex Response", $matrix);
 
                 foreach ($chunk as $index => $hospital) {
-                    $hospital->distance = $element['distance']['text'];
-                    $hospital->duration = $element['duration']['text'];
-                    // $element = $matrix['rows'][0]['elements'][$index] ?? null;
-                    // if ($element && ($element['status'] ?? '') === 'OK') {
-                    //     $hospital->distance = $element['distance']['text'];
-                    //     $hospital->duration = $element['duration']['text'];
-                    // } else {
-                    //     $hospital->distance = 'N/AA';
-                    //     $hospital->duration = 'N/AA';
-                    // }
+                    $element = $matrix['rows'][0]['elements'][0] ?? null;
+                    if ($element && ($element['status'] ?? '') === 'OK') {
+                        $hospital->distance = $element['distance']['text'];
+                        $hospital->duration = $element['duration']['text'];
+                    } else {
+                        $hospital->distance = 'N/AA';
+                        $hospital->duration = 'N/AA';
+                    }
                 }
             } else {
                 foreach ($chunk as $index => $hospital) {
