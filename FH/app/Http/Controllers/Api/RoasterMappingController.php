@@ -192,71 +192,6 @@ class RoasterMappingController extends Controller
 
     public function getHospitalsByDistance(Request $request)
     {
-    //     $request->validate([
-    //         'user_id' => 'required|integer',
-    //         'lat' => 'required|numeric',
-    //         'long' => 'required|numeric',
-    //         'location' => 'required'
-    //     ]);
-
-    //     $userLat = $request->lat;
-    //     $userLong = $request->long;
-    //     $apiKey = env('GOOGLE_MAPS_API_KEY');
-
-    //     // Fetch all hospitals
-    //    $hospitals = DB::table('hospitals')
-    //         ->select('id', 'name', 'latitude', 'longitude')
-    //         ->whereNotNull('latitude')
-    //         ->whereNotNull('longitude')
-    //         ->get();
-
-    //     logger('Hospitals count:', ['count' => $hospitals->count()]);
-
-    //     $apiKey = env('GOOGLE_MAPS_API_KEY');
-    //     $allUpdated = collect();
-
-    //     $chunkedHospitals = $hospitals->chunk(25);
-    //     logger('Total chunks:', ['count' => $chunkedHospitals->count()]);
-
-    //     foreach ($chunkedHospitals as $chunkIndex => $chunk) {
-    //         $destinations = $chunk->map(fn($h) => "{$h->latitude},{$h->longitude}")->implode('|');
-
-    //         $response = Http::get('https://maps.googleapis.com/maps/api/distancematrix/json', [
-    //             'origins' => "{$userLat},{$userLong}",
-    //             'destinations' => $destinations,
-    //             'mode' => 'driving',
-    //             'key' => $apiKey,
-    //         ]);
-
-    //         $matrix = $response->json();
-    //         logger("Chunk $chunkIndex Response", $matrix);
-
-    //         if (isset($matrix['rows'][0]['elements']) && is_array($matrix['rows'][0]['elements'])) {
-    //             foreach ($chunk as $index => $hospital) {
-    //                 $element = $matrix['rows'][0]['elements'][$index] ?? null;
-    //                 if ($element && ($element['status'] ?? '') === 'OK') {
-    //                     $hospital->distance = $element['distance']['text'];
-    //                     $hospital->duration = $element['duration']['text'];
-    //                 } else {
-    //                     $hospital->distance = 'N/A';
-    //                     $hospital->duration = 'N/A';
-    //                 }
-    //             }
-    //         } else {
-    //             foreach ($chunk as $hospital) {
-    //                 $hospital->distance = 'N/A';
-    //                 $hospital->duration = 'N/A';
-    //             }
-    //         }
-
-    //         $allUpdated = $allUpdated->merge($chunk);
-    //         sleep(1); // wait 1 second to avoid rate limit
-    //     }
-
-    //     $hospitals = $allUpdated->values();
-
-
-        // Validate inputs
         $request->validate([
             'user_id' => 'required|integer',
             'lat' => 'required|numeric',
@@ -268,8 +203,8 @@ class RoasterMappingController extends Controller
         $userLong = $request->long;
         $apiKey = env('GOOGLE_MAPS_API_KEY');
 
-        // Fetch all hospitals with coordinates
-        $hospitals = DB::table('hospitals')
+        // Fetch all hospitals
+       $hospitals = DB::table('hospitals')
             ->select('id', 'name', 'latitude', 'longitude')
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
@@ -277,65 +212,50 @@ class RoasterMappingController extends Controller
 
         logger('Hospitals count:', ['count' => $hospitals->count()]);
 
+        $apiKey = env('GOOGLE_MAPS_API_KEY');
         $allUpdated = collect();
 
-        // Google Matrix limit: 25 destinations per request
         $chunkedHospitals = $hospitals->chunk(25);
         logger('Total chunks:', ['count' => $chunkedHospitals->count()]);
 
         foreach ($chunkedHospitals as $chunkIndex => $chunk) {
-            $destinations = $chunk
-                ->map(fn($h) => "{$h->latitude},{$h->longitude}")
-                ->implode('|'); // Pipe-separated destination string
+            $destinations = $chunk->map(fn($h) => "{$h->latitude},{$h->longitude}")->implode('|');
 
-            try {
-                $response = Http::timeout(20)->get('https://maps.googleapis.com/maps/api/distancematrix/json', [
-                    'origins' => "{$userLat},{$userLong}",
-                    'destinations' => $destinations,
-                    'mode' => 'driving',
-                    'key' => $apiKey,
-                ]);
+            logger('kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk', $destinations);
 
-                $matrix = $response->json();
+            $response = Http::get('https://maps.googleapis.com/maps/api/distancematrix/json', [
+                'origins' => "{$userLat},{$userLong}",
+                'destinations' => $destinations,
+                'mode' => 'driving',
+                'key' => $apiKey,
+            ]);
 
-                logger("Chunk {$chunkIndex} Response", ['status' => $matrix['status'] ?? 'N/A']);
+            $matrix = $response->json();
+            logger("Chunk $chunkIndex Response", $matrix);
 
-                if (
-                    isset($matrix['rows'][0]['elements']) &&
-                    is_array($matrix['rows'][0]['elements'])
-                ) {
-                    foreach ($chunk as $index => $hospital) {
-                        $element = $matrix['rows'][0]['elements'][$index] ?? null;
-                        if ($element && ($element['status'] ?? '') === 'OK') {
-                            $hospital->distance = $element['distance']['text'] ?? 'N/A';
-                            $hospital->distance_value = $element['distance']['value'] ?? 0;
-                            $hospital->duration = $element['duration']['text'] ?? 'N/A';
-                            $hospital->duration_value = $element['duration']['value'] ?? 0;
-                        } else {
-                            $hospital->distance = 'N/A';
-                            $hospital->distance_value = 0;
-                            $hospital->duration = 'N/A';
-                            $hospital->duration_value = 0;
-                        }
-                    }
-                } else {
-                    foreach ($chunk as $hospital) {
+            if (isset($matrix['rows'][0]['elements']) && is_array($matrix['rows'][0]['elements'])) {
+                foreach ($chunk as $index => $hospital) {
+                    $element = $matrix['rows'][0]['elements'][$index] ?? null;
+                    if ($element && ($element['status'] ?? '') === 'OK') {
+                        $hospital->distance = $element['distance']['text'];
+                        $hospital->duration = $element['duration']['text'];
+                    } else {
                         $hospital->distance = 'N/A';
-                        $hospital->distance_value = 0;
                         $hospital->duration = 'N/A';
-                        $hospital->duration_value = 0;
                     }
                 }
-
-                $allUpdated = $allUpdated->merge($chunk);
-                sleep(1); // Optional: avoid rate limit (1 request/sec)
-            } catch (\Exception $e) {
-                logger("Chunk {$chunkIndex} Failed:", ['error' => $e->getMessage()]);
+            } else {
+                foreach ($chunk as $hospital) {
+                    $hospital->distance = 'N/A';
+                    $hospital->duration = 'N/A';
+                }
             }
+
+            $allUpdated = $allUpdated->merge($chunk);
+            sleep(1); // wait 1 second to avoid rate limit
         }
 
-        // Sort hospitals by shortest distance (numeric value)
-        $hospitals = $allUpdated->sortBy('distance_value')->values();
+        $hospitals = $allUpdated->values();
 
 
         // ✅ Driver section
