@@ -215,7 +215,7 @@ class RoasterMappingController extends Controller
         $apiKey = env('GOOGLE_MAPS_API_KEY');
         $allUpdated = collect();
 
-        $chunkedHospitals = $hospitals->chunk(200);
+        $chunkedHospitals = $hospitals->chunk(20);
         logger('Total chunks:', ['count' => $chunkedHospitals->count()]);
 
         foreach ($chunkedHospitals as $chunkIndex => $chunk) {
