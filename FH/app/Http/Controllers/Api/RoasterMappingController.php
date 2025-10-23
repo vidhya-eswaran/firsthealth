@@ -208,7 +208,7 @@ class RoasterMappingController extends Controller
             ->select('id', 'name', 'latitude', 'longitude')
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
-            ->limit(100)->get();
+            ->limit(50)->get();
 
         logger('Hospitals count:', ['count' => $hospitals->count()]);
 
@@ -231,9 +231,12 @@ class RoasterMappingController extends Controller
             ]);
 
             $matrix = $response->json();
-            logger("Chunk $chunkIndex Response", $matrix);
+            
 
             if (isset($matrix['rows'][0]['elements']) && is_array($matrix['rows'][0]['elements'])) {
+
+                logger("uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu $chunkIndex Response", $matrix);
+
                 foreach ($chunk as $index => $hospital) {
                     $element = $matrix['rows'][0]['elements'][$index] ?? null;
                     if ($element && ($element['status'] ?? '') === 'OK') {
