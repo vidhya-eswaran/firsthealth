@@ -301,8 +301,8 @@ class RoasterMappingController extends Controller
          $zohoData = [
             'data' => $hospitals->map(function ($hospital) use ($request) {
                 return [
-                    'Name'             => Str::limit($hospital->name . ' | ' . ($hospital->distance ?? '0') . ' km', 100),
-                    'Hospital_Name'    => Str::limit($hospital->name . ' | ' . ($hospital->distance ?? '0') . ' km', 100),
+                    'Name'             => Str::limit($hospital->name . ' | ' . ($hospital->distance ?? '0') , 100),
+                    'Hospital_Name'    => Str::limit($hospital->name . ' | ' . ($hospital->distance ?? '0') , 100),
                     'Hospital_Id'      => $hospital->id,
                     'User_Id'          => $request->user_id,
                     'Location_From'    => Str::limit($request->location, 100),
@@ -335,8 +335,8 @@ class RoasterMappingController extends Controller
                 $currentLocation = $this->getLocationName($driver->current_lat, $driver->current_long);
     
                 return [
-                    'Name'             => $driver->name . ' | ' . ($driver->distance ?? '0') . ' km', 
-                    'Driver_Name'      => $driver->name . ' | ' . ($driver->distance ?? '0') . ' km', 
+                    'Name'             => $driver->name . ' | ' . ($driver->distance ?? '0') , 
+                    'Driver_Name'      => $driver->name . ' | ' . ($driver->distance ?? '0') , 
                     'Driver_Id'        => $driver->id,
                     'User_Id'          => $request->user_id, // Corrected user_id from Driver table
                     'Current_Location' => $currentLocation,
